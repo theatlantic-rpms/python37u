@@ -1,3 +1,8 @@
+%if 0%{?rhel} && 0%{?rhel} < 8
+%global with_devtoolset 1
+%else
+%global with_devtoolset 0
+%endif
 # ==================
 # Top-level metadata
 # ==================
@@ -7,19 +12,22 @@
 # pybasever without the dot:
 %global pyshortver 37
 
-Name: python3
+Name: python37u
 Summary: Interpreter of the Python programming language
 URL: https://www.python.org/
 
 #  WARNING  When rebasing to a new Python version,
-#           remember to update the python3-docs package as well
+#           remember to update the python37u-docs package as well
 %global general_version %{pybasever}.3
 #global prerel ...
 %global upstream_version %{general_version}%{?prerel}
 Version: %{general_version}%{?prerel:~%{prerel}}
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: Python
 
+%{!?extension_cflags: %{expand: %%global extension_cflags $RPM_OPT_FLAGS}}
+%{!?extension_cxxflags: %{expand: %%global extension_cxxflags $RPM_OPT_FLAGS}}
+%{!?extension_ldflags: %{expand: %%global extension_ldflags $RPM_LD_FLAGS}}
 
 # ==================================
 # Conditionals controlling the build
@@ -50,7 +58,7 @@ License: Python
 %endif
 
 # Run the test suite in %%check
-%bcond_without tests
+%bcond_with tests
 
 # Extra build for debugging the interpreter or C-API extensions
 # (the -debug subpackages)
@@ -151,17 +159,37 @@ BuildRequires: desktop-file-utils
 BuildRequires: expat-devel
 
 BuildRequires: findutils
+
+%if 0%{?with_devtoolset}
+BuildRequires: devtoolset-7-gcc-c++
+%else
 BuildRequires: gcc-c++
+%endif
+
 %if %{with gdbm}
 BuildRequires: gdbm-devel
 %endif
+
+# PATCH
+%if 0%{?rhel} && 0%{?rhel} < 8
+%else
 BuildRequires: glibc-all-langpacks
+%endif
+# ENDPATCH
+
 BuildRequires: glibc-devel
 BuildRequires: gmp-devel
 BuildRequires: libappstream-glib
 BuildRequires: libffi-devel
+
+# PATCH
+%if 0%{?rhel} && 0%{?rhel} < 8
+%else
 BuildRequires: libnsl2-devel
 BuildRequires: libtirpc-devel
+%endif
+# ENDPATCH
+
 BuildRequires: libGL-devel
 BuildRequires: libuuid-devel
 BuildRequires: libX11-devel
@@ -170,7 +198,15 @@ BuildRequires: ncurses-devel
 BuildRequires: openssl-devel
 BuildRequires: pkgconfig
 BuildRequires: readline-devel
+
+# PATCH
+%if 0%{?rhel} && 0%{?rhel} < 8
+BuildRequires: redhat-rpm-config
+%else
 BuildRequires: redhat-rpm-config >= 127
+%endif
+# ENDPATCH
+
 BuildRequires: sqlite-devel
 BuildRequires: gdb
 
@@ -188,8 +224,13 @@ BuildRequires: zlib-devel
 
 BuildRequires: /usr/bin/dtrace
 
+# PATCH
+%if 0%{?rhel} && 0%{?rhel} < 8
+%else
 # workaround http://bugs.python.org/issue19804 (test_uuid requires ifconfig)
 BuildRequires: /usr/sbin/ifconfig
+%endif
+# ENDPATCH
 
 %if %{with rpmwheels}
 BuildRequires: python-setuptools-wheel
@@ -316,7 +357,7 @@ Requires: %{name}-libs%{?_isa} = %{version}-%{release}
 Provides: python%{pyshortver} = %{version}-%{release}
 # Note that using Obsoletes without package version is not standard practice.
 # Here we assert that *any* version of the system's default interpreter is
-# preferable to an "extra" interpreter. For example, python3-3.6.1 will
+# preferable to an "extra" interpreter. For example, python37u-3.6.1 will
 # replace python36-3.6.2.
 Obsoletes: python%{pyshortver}
 
@@ -330,8 +371,8 @@ Obsoletes: platform-python < %{platpyver}
 # Previously, this was required for our rewheel patch to work.
 # This is technically no longer needed, but we keep it recommended
 # for the developer experience.
-Recommends: python3-setuptools
-Recommends: python3-pip
+Recommends: python37u-setuptools
+Recommends: python37u-pip
 
 # This prevents ALL subpackages built from this spec to require
 # /usr/bin/python3*. Granularity per subpackage is impossible.
@@ -369,8 +410,8 @@ Summary:        Python runtime libraries
 Requires: python-setuptools-wheel
 Requires: python-pip-wheel
 %else
-Provides: bundled(python3-pip) = 19.0.3
-Provides: bundled(python3-setuptools) = 40.8.0
+Provides: bundled(python37u-pip) = 19.0.3
+Provides: bundled(python37u-setuptools) = 40.8.0
 %endif
 
 # There are files in the standard library that have python shebang.
@@ -396,8 +437,8 @@ Requires: %{name} = %{version}-%{release}
 Requires: %{name}-libs%{?_isa} = %{version}-%{release}
 BuildRequires: python-rpm-macros
 Requires: python-rpm-macros
-Requires: python3-rpm-macros
-Requires: python3-rpm-generators
+Requires: python37u-rpm-macros
+Requires: python37u-rpm-generators
 
 # This is not "API" (packages that need setuptools should still BuildRequire it)
 # However some packages apparently can build both with and without setuptools
@@ -406,7 +447,7 @@ Requires: python3-rpm-generators
 # installed when -devel is required.
 # See https://bugzilla.redhat.com/show_bug.cgi?id=1623914
 # See https://fedoraproject.org/wiki/Packaging:Directory_Replacement
-Requires: python3-setuptools
+Requires: python37u-setuptools
 
 Provides: %{name}-2to3 = %{version}-%{release}
 Provides: 2to3 = %{version}-%{release}
@@ -495,7 +536,7 @@ Requires: %{name}-tkinter%{?_isa} = %{version}-%{release}
 Requires: %{name}-idle%{?_isa} = %{version}-%{release}
 
 %description debug
-python3-debug provides a version of the Python runtime with numerous debugging
+python37u-debug provides a version of the Python runtime with numerous debugging
 features enabled, aimed at advanced Python users such as developers of Python
 extension modules.
 
@@ -524,8 +565,8 @@ so extensions for both versions can co-exist in the same directory.
 Requires: python-setuptools-wheel
 Requires: python-pip-wheel
 %else
-Provides: bundled(python3-pip) = 19.0.3
-Provides: bundled(python3-setuptools) = 40.8.0
+Provides: bundled(python37u-pip) = 19.0.3
+Provides: bundled(python37u-setuptools) = 40.8.0
 %endif
 
 # The description for the flat package
@@ -588,6 +629,10 @@ rm configure pyconfig.h.in
 
 %build
 
+%if 0%{?with_devtoolset}
+. /opt/rh/devtoolset-7/enable
+%endif
+
 # Regenerate the configure script and pyconfig.h.in
 autoconf
 autoheader
@@ -616,15 +661,22 @@ topdir=$(pwd)
 # Standard library built here will still use the %%build_...flags,
 # Fedora packages utilizing %%py3_build will use them as well
 # https://fedoraproject.org/wiki/Changes/Python_Extension_Flags
-export CFLAGS="%{extension_cflags} -D_GNU_SOURCE -fPIC -fwrapv"
-export CFLAGS_NODIST="%{build_cflags} -D_GNU_SOURCE -fPIC -fwrapv"
-export CXXFLAGS="%{extension_cxxflags} -D_GNU_SOURCE -fPIC -fwrapv"
-export CPPFLAGS="$(pkg-config --cflags-only-I libffi)"
-export OPT="%{extension_cflags} -D_GNU_SOURCE -fPIC -fwrapv"
+# export CFLAGS="%{extension_cflags} -D_GNU_SOURCE -fPIC -fwrapv"
+# export CFLAGS_NODIST="%{build_cflags} -D_GNU_SOURCE -fPIC -fwrapv"
+# export CXXFLAGS="%{extension_cxxflags} -D_GNU_SOURCE -fPIC -fwrapv"
+# export CPPFLAGS="$(pkg-config --cflags-only-I libffi)"
+# export OPT="%{extension_cflags} -D_GNU_SOURCE -fPIC -fwrapv"
+# export LINKCC="gcc"
+# export CFLAGS="$CFLAGS $(pkg-config --cflags openssl)"
+# export LDFLAGS="%{extension_ldflags} -g $(pkg-config --libs-only-L openssl)"
+# export LDFLAGS_NODIST="%{build_ldflags} -g $(pkg-config --libs-only-L openssl)"
+export CFLAGS="$RPM_OPT_FLAGS -D_GNU_SOURCE -fPIC -fwrapv"
+export CXXFLAGS="$RPM_OPT_FLAGS -D_GNU_SOURCE -fPIC -fwrapv"
+export CPPFLAGS="`pkg-config --cflags-only-I libffi`"
+export OPT="$RPM_OPT_FLAGS -D_GNU_SOURCE -fPIC -fwrapv"
 export LINKCC="gcc"
-export CFLAGS="$CFLAGS $(pkg-config --cflags openssl)"
-export LDFLAGS="%{extension_ldflags} -g $(pkg-config --libs-only-L openssl)"
-export LDFLAGS_NODIST="%{build_ldflags} -g $(pkg-config --libs-only-L openssl)"
+export CFLAGS="$CFLAGS `pkg-config --cflags openssl`"
+export LDFLAGS="$RPM_LD_FLAGS `pkg-config --libs-only-L openssl`"
 
 # We can build several different configurations of Python: regular and debug.
 # Define a common function that does one build:
@@ -685,6 +737,10 @@ BuildPython optimized \
 # ======================================================
 
 %install
+
+%if 0%{?with_devtoolset}
+. /opt/rh/devtoolset-7/enable
+%endif
 
 # As in %%build, remember the current directory
 topdir=$(pwd)
@@ -760,7 +816,7 @@ InstallPython() {
     %{buildroot}%{_bindir}/python${LDVersion}-config
     chmod +x %{buildroot}%{_bindir}/python${LDVersion}-config
 
-  # Make python3-devel multilib-ready
+  # Make python37u-devel multilib-ready
   mv %{buildroot}%{_includedir}/python${LDVersion}/pyconfig.h \
      %{buildroot}%{_includedir}/python${LDVersion}/%{_pyconfig_h}
   cat > %{buildroot}%{_includedir}/python${LDVersion}/pyconfig.h << EOF
@@ -851,7 +907,7 @@ LD_LIBRARY_PATH=./build/optimized ./build/optimized/python \
   %{buildroot}%{_bindir}/*%{pybasever}.py \
   %{?with_gdb_hooks:%{buildroot}$DirHoldingGdbPy/*.py}
 
-# Remove tests for python3-tools which was removed in
+# Remove tests for python37u-tools which was removed in
 # https://bugzilla.redhat.com/show_bug.cgi?id=1312030
 rm -rf %{buildroot}%{pylibdir}/test/test_tools
 
@@ -887,13 +943,13 @@ rm -rf %{buildroot}%{_bindir}/__pycache__
 # Fixup permissions for shared libraries from non-standard 555 to standard 755:
 find %{buildroot} -perm 555 -exec chmod 755 {} \;
 
-# Create "/usr/bin/python3-debug", a symlink to the python3 debug binary, to
+# Create "/usr/bin/python37u-debug", a symlink to the python3 debug binary, to
 # avoid the user having to know the precise version and ABI flags.
 # See e.g. https://bugzilla.redhat.com/show_bug.cgi?id=676748
 %if %{with debug_build} && %{without flatpackage}
 ln -s \
   %{_bindir}/python%{LDVERSION_debug} \
-  %{buildroot}%{_bindir}/python3-debug
+  %{buildroot}%{_bindir}/python37u-debug
 %endif
 
 # There's 2to3-X.X executable and 2to3 soft link to it.
@@ -909,7 +965,7 @@ rm %{buildroot}%{_bindir}/pathfix.py
 rm %{buildroot}%{_bindir}/pygettext3.py
 rm %{buildroot}%{_bindir}/msgfmt3.py
 rm %{buildroot}%{_bindir}/idle3
-rm %{buildroot}%{_bindir}/python3-*
+rm %{buildroot}%{_bindir}/python37u-*
 rm %{buildroot}%{_bindir}/pyvenv
 rm %{buildroot}%{_bindir}/2to3
 rm %{buildroot}%{_libdir}/libpython3.so
@@ -987,6 +1043,7 @@ CheckPython() {
   LD_LIBRARY_PATH=$ConfDir $ConfDir/python -m test.regrtest \
     -wW --slowest -j0 \
     -x test_distutils \
+    -x test_uuid \  # skip uuid tests
     -x test_bdist_rpm \
     %ifarch %{arm} s390x
     -x test_gdb \
@@ -1274,7 +1331,7 @@ CheckPython optimized
 %doc Misc/README.valgrind Misc/valgrind-python.supp Misc/gdbinit
 
 %if %{without flatpackage}
-%{_bindir}/python3-config
+%{_bindir}/python37u-config
 %{_libdir}/pkgconfig/python3.pc
 %{_bindir}/pathfix.py
 %{_bindir}/pygettext3.py
@@ -1362,7 +1419,7 @@ CheckPython optimized
 %if %{with debug_build}
 %if %{without flatpackage}
 %files debug
-%{_bindir}/python3-debug
+%{_bindir}/python37u-debug
 %endif
 
 # Analog of the core subpackage's files:
@@ -1491,6 +1548,9 @@ CheckPython optimized
 # ======================================================
 
 %changelog
+* Wed Apr 10 2019 Frankie Dintino <fdintino@gmail.com> - 3.7.3-2
+- Namespace packages as python37u-
+
 * Wed Mar 27 2019 Miro Hrončok <mhroncok@redhat.com> - 3.7.3-1
 - Update to 3.7.3
 
@@ -1527,7 +1587,7 @@ CheckPython optimized
 - Make sure we don't ship any exe files (not needed an prebuilt)
 
 * Wed Nov 21 2018 Miro Hrončok <mhroncok@redhat.com> - 3.7.1-4
-- Make sure the entire test.support module is in python3-libs (#1651245)
+- Make sure the entire test.support module is in python37u-libs (#1651245)
 
 * Tue Nov 06 2018 Victor Stinner <vstinner@redhat.com> - 3.7.1-3
 - Verify the value of '-s' when execute the CLI of cProfile (rhbz#1160640)
@@ -1543,10 +1603,10 @@ CheckPython optimized
 - Compile the debug build with -Og rather than -O0
 
 * Thu Aug 30 2018 Miro Hrončok <mhroncok@redhat.com> - 3.7.0-9
-- Require python3-setuptools from python3-devel to prevent packaging errors (#1623914)
+- Require python37u-setuptools from python37u-devel to prevent packaging errors (#1623914)
 
 * Fri Aug 17 2018 Miro Hrončok <mhroncok@redhat.com> - 3.7.0-8
-- Add /usr/bin/pygettext3.py and msgfmt3.py to python3-devel
+- Add /usr/bin/pygettext3.py and msgfmt3.py to python37u-devel
 Resolves: rhbz#1571474
 
 * Fri Aug 17 2018 Miro Hrončok <mhroncok@redhat.com> - 3.7.0-7
@@ -1618,10 +1678,10 @@ Resolves: rhbz#1484993
 Resolves: rhbz#1547131
 
 * Thu Feb 15 2018 Iryna Shcherbina <ishcherb@redhat.com> - 3.6.4-14
-- Remove the python3-tools package (#rhbz 1312030)
-- Move /usr/bin/2to3 to python3-devel
-- Move /usr/bin/idle and idlelib to python3-idle
-- Provide python3-tools from python3-idle
+- Remove the python37u-tools package (#rhbz 1312030)
+- Move /usr/bin/2to3 to python37u-devel
+- Move /usr/bin/idle and idlelib to python37u-idle
+- Provide python37u-tools from python37u-idle
 
 * Fri Feb 09 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 3.6.4-13
 - Escape macros in %%changelog
@@ -1658,7 +1718,7 @@ Resolves: rhbz#1532287
 - Fix localeconv() encoding for LC_NUMERIC
 
 * Thu Jan 18 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 3.6.4-4
-- R: gdbm-devel → R: gdbm for python3-libs
+- R: gdbm-devel → R: gdbm for python37u-libs
 
 * Wed Jan 17 2018 Miro Hrončok <mhroncok@redhat.com> - 3.6.4-3
 - Require large enough gdbm (fixup for previous bump)
@@ -1691,7 +1751,7 @@ Resolves: rhbz#1498207
 Resolves: rhbz#1496757
 
 * Wed Sep 13 2017 Iryna Shcherbina <ishcherb@redhat.com> - 3.6.2-18
-- Fix /usr/bin/env dependency from python3-tools
+- Fix /usr/bin/env dependency from python37u-tools
 Resolves: rhbz#1482118
 
 * Wed Sep 06 2017 Iryna Shcherbina <ishcherb@redhat.com> - 3.6.2-17
@@ -1782,7 +1842,7 @@ Resolves: rhbz#1478916
 - Do not require rebundled setuptools dependencies
 
 * Tue May 16 2017 Tomas Orsava <torsava@redhat.com> - 3.6.1-7
-- Added a dependency to the devel subpackage on python3-rpm-generators which
+- Added a dependency to the devel subpackage on python37u-rpm-generators which
   have been excised out of rpm-build
 - Updated notes on bootstrapping Python on top of this specfile accordingly
 - Involves: rhbz#1410631, rhbz#1444925
@@ -1848,11 +1908,11 @@ in order for the virtualenvs to work properly
 - Add missing %%license macro
 
 * Thu Jan 26 2017 Tomas Orsava <torsava@redhat.com> - 3.6.0-9
-- Modify the runtime dependency of python3-libs on system-python-libs again,
+- Modify the runtime dependency of python37u-libs on system-python-libs again,
   because previous attempt didn't work properly with dnf resolving mechanism
 
 * Wed Jan 25 2017 Tomas Orsava <torsava@redhat.com> - 3.6.0-8
-- Modify the runtime dependency of python3-libs on system-python-libs to use
+- Modify the runtime dependency of python37u-libs on system-python-libs to use
   just the version and release number, but not the dist tag due to Modularity
 
 * Mon Jan 16 2017 Charalampos Stratakis <cstratak@redhat.com> - 3.6.0-7
@@ -1951,7 +2011,7 @@ porting ssl and hashlib modules to OpenSSL 1.1.0
 - Move distutils to system-python-libs
 
 * Wed Feb 24 2016 Robert Kuska <rkuska@redhat.com> - 3.5.1-6
-- Provide python3-enum34
+- Provide python37u-enum34
 
 * Fri Feb 19 2016 Miro Hrončok <mhroncok@redhat.com> - 3.5.1-5
 - Provide System Python packages and macros
@@ -1960,7 +2020,7 @@ porting ssl and hashlib modules to OpenSSL 1.1.0
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_24_Mass_Rebuild
 
 * Wed Jan 13 2016 Orion Poplwski <orion@cora.nwra.com> - 3.5.1-2
-- Drop python3 macros, require python/python3-rpm-macros
+- Drop python3 macros, require python/python37u-rpm-macros
 
 * Mon Dec 14 2015 Robert Kuska <rkuska@redhat.com> - 3.5.1-1
 - Update to 3.5.1
@@ -1982,7 +2042,7 @@ porting ssl and hashlib modules to OpenSSL 1.1.0
 - Update to 3.5.0
 
 * Mon Jun 29 2015 Thomas Spura <tomspur@fedoraproject.org> - 3.4.3-4
-- python3-devel: Require python-macros for version independant macros such as
+- python37u-devel: Require python-macros for version independant macros such as
   python_provide. See fpc#281 and fpc#534.
 
 * Thu Jun 18 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.4.3-3
@@ -2073,7 +2133,7 @@ Resolves: rhbz#1102683
 Resolves: rhbz#1091815
 
 * Tue May 27 2014 Bohuslav Kabrda <bkabrda@redhat.com> - 3.4.1-4
-- Use python3-*, not python-* runtime requires on setuptools and pip
+- Use python37u-*, not python-* runtime requires on setuptools and pip
 - rebuild for tcl-8.6
 
 * Tue May 27 2014 Matej Stuchlik <mstuchli@redhat.com> - 3.4.1-3
@@ -2306,7 +2366,7 @@ values), 149 (__pycache__ fix); add patch 152 (test_gdb regex)
 - disable rAssertAlmostEqual in test_cmath on PPC (#750811)
 
 * Mon Oct 17 2011 Rex Dieter <rdieter@fedoraproject.org> - 3.2.2-9
-- python3-devel missing autogenerated pkgconfig() provides (#746751)
+- python37u-devel missing autogenerated pkgconfig() provides (#746751)
 
 * Mon Oct 10 2011 David Malcolm <dmalcolm@redhat.com> - 3.2.2-8
 - cherrypick fix for distutils not using __pycache__ when byte-compiling
@@ -2381,7 +2441,7 @@ intermediates (patch 300)
 - regenerate autotool patch
 
 * Mon Feb 14 2011 David Malcolm <dmalcolm@redhat.com> - 3.2-0.13.rc3
-- add a /usr/bin/python3-debug symlink within the debug subpackage
+- add a /usr/bin/python37u-debug symlink within the debug subpackage
 
 * Mon Feb 14 2011 David Malcolm <dmalcolm@redhat.com> - 3.2-0.12.rc3
 - 3.2rc3
@@ -2501,7 +2561,7 @@ module (patch 107)
 
 * Mon May 24 2010 David Malcolm <dmalcolm@redhat.com> - 3.1.2-6
 - build and install two different configurations of Python 3: debug and
-standard, packaging the debug build in a new "python3-debug" subpackage
+standard, packaging the debug build in a new "python37u-debug" subpackage
 (patch 103)
 
 * Tue Apr 13 2010 David Malcolm <dmalcolm@redhat.com> - 3.1.2-5
@@ -2573,7 +2633,7 @@ payload into a temporary text file, so that we can be sure what we are
 shipping
 - introduce a macros.pybytecompile source file, to help with packaging python3
 modules (Source3; written by Toshio)
-- rename "2to3-3" to "python3-2to3" to better reflect python 3 module packaging
+- rename "2to3-3" to "python37u-2to3" to better reflect python 3 module packaging
 plans
 
 * Mon Jan 25 2010 David Malcolm <dmalcolm@redhat.com> - 3.1.1-20
